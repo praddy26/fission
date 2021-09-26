@@ -369,3 +369,30 @@ func getContainerLog(kubernetesClient *kubernetes.Clientset, w http.ResponseWrit
 
 	return nil
 }
+
+func (a *API) FunctionApiPodList(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	name := vars["function"]
+	labelFilter := fmt.Sprintf("functionName=%s", name)
+
+	et := a.extractQueryParamFromRequest(r, "executortype")
+	if len(et) != 0 {
+		labelFilter = fmt.Sprintf("%s,executorType=%s", labelFilter, et)
+	}
+
+	pods, err := a.kubernetesClient.CoreV1().Pods(a.functionNamespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: labelFilter,
+	})
+	if err != nil {
+		a.respondWithError(w, err)
+		return
+	}
+
+	resp, err := json.Marshal(pods.Items)
+	if err != nil {
+		a.respondWithError(w, err)
+		return
+	}
+
+	a.respondWithSuccess(w, resp)
+}

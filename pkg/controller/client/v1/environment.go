@@ -22,11 +22,11 @@ import (
 
 	"github.com/fission/fission/pkg/controller/client/rest"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	fv1 "github.com/fission/fission/pkg/apis/core/v1"
 	"github.com/fission/fission/pkg/generator/encoder"
 	v1generator "github.com/fission/fission/pkg/generator/v1"
+	apiv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type (
@@ -40,6 +40,7 @@ type (
 		Update(env *fv1.Environment) (*metav1.ObjectMeta, error)
 		Delete(m *metav1.ObjectMeta) error
 		List(ns string) ([]fv1.Environment, error)
+		ListPods(m *metav1.ObjectMeta) ([]apiv1.Pod, error)
 	}
 
 	Environment struct {
@@ -162,4 +163,31 @@ func (c *Environment) List(ns string) ([]fv1.Environment, error) {
 	}
 
 	return envs, nil
+}
+
+func (c *Environment) ListPods(m *metav1.ObjectMeta) ([]apiv1.Pod, error) {
+	relativeUrl := fmt.Sprintf("environments/%s/pods", m.Name)
+
+	if len(m.Labels) != 0 {
+		relativeUrl = fmt.Sprintf("%s?executortype=%s", relativeUrl, m.Labels["executorType"])
+	}
+
+	resp, err := c.client.Get(relativeUrl)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := handleResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	pods := make([]apiv1.Pod, 0)
+	err = json.Unmarshal(body, &pods)
+	if err != nil {
+		return nil, err
+	}
+
+	return pods, nil
 }

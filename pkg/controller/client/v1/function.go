@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	fv1 "github.com/fission/fission/pkg/apis/core/v1"
@@ -38,6 +39,7 @@ type (
 		Update(f *fv1.Function) (*metav1.ObjectMeta, error)
 		Delete(m *metav1.ObjectMeta) error
 		List(functionNamespace string) ([]fv1.Function, error)
+		ListPods(m *metav1.ObjectMeta) ([]apiv1.Pod, error)
 	}
 
 	Function struct {
@@ -175,4 +177,31 @@ func (c *Function) List(functionNamespace string) ([]fv1.Function, error) {
 	}
 
 	return funcs, nil
+}
+
+func (c *Function) ListPods(m *metav1.ObjectMeta) ([]apiv1.Pod, error) {
+	relativeUrl := fmt.Sprintf("functions/%s/pods", m.Name)
+
+	if len(m.Labels) != 0 {
+		relativeUrl = fmt.Sprintf("%s?executortype=%s", relativeUrl, m.Labels["executorType"])
+	}
+
+	resp, err := c.client.Get(relativeUrl)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := handleResponse(resp)
+	if err != nil {
+		return nil, err
+	}
+
+	pods := make([]apiv1.Pod, 0)
+	err = json.Unmarshal(body, &pods)
+	if err != nil {
+		return nil, err
+	}
+
+	return pods, nil
 }

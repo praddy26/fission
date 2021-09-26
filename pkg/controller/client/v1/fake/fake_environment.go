@@ -21,6 +21,7 @@ import (
 
 	fv1 "github.com/fission/fission/pkg/apis/core/v1"
 	v1 "github.com/fission/fission/pkg/controller/client/v1"
+	apiv1 "k8s.io/api/core/v1"
 )
 
 type (
@@ -48,5 +49,9 @@ func (c *FakeEnvironment) Delete(m *metav1.ObjectMeta) error {
 }
 
 func (c *FakeEnvironment) List(ns string) ([]fv1.Environment, error) {
+	return nil, nil
+}
+
+func (c *FakeEnvironment) ListPods(m *metav1.ObjectMeta) ([]apiv1.Pod, error) {
 	return nil, nil
 }

@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -237,4 +238,31 @@ func (a *API) EnvironmentApiDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a.respondWithSuccess(w, []byte(""))
+}
+
+func (a *API) EnvironmentApiPodList(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	name := vars["environment"]
+	labelFilter := fmt.Sprintf("environmentName=%s", name)
+
+	et := a.extractQueryParamFromRequest(r, "executortype")
+	if len(et) != 0 {
+		labelFilter = fmt.Sprintf("%s,executorType=%s", labelFilter, et)
+	}
+
+	pods, err := a.kubernetesClient.CoreV1().Pods(a.functionNamespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: labelFilter,
+	})
+	if err != nil {
+		a.respondWithError(w, err)
+		return
+	}
+
+	resp, err := json.Marshal(pods.Items)
+	if err != nil {
+		a.respondWithError(w, err)
+		return
+	}
+
+	a.respondWithSuccess(w, resp)
 }
