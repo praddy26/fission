@@ -516,16 +516,12 @@ func GetGVRFromAPIVersionKind(apiVersion, kind string) (*schema.GroupVersionReso
 }
 
 func CheckError(err error, msg string) {
-	colorReset := "\033[0m"
-	colorRed := "\033[31m"
-	errorPrefix := colorRed + "Error:" + colorReset
-
-	if err != nil {
-		if msg != "" {
-			fmt.Println(errorPrefix, errors.Wrap(err, msg))
-		} else {
-			fmt.Println(errorPrefix, err)
-		}
-		os.Exit(1)
+	if err == nil {
+		return
 	}
+	if msg != "" {
+		err = errors.Wrap(err, msg)
+	}
+	console.Error(err)
+	os.Exit(1)
 }
